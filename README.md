@@ -38,6 +38,10 @@ MOBİL (360–480)                 TABLET (600–1024)
 
 `index.html` dosyasını tarayıcıda aç. Gerçek oyun bağlantıları için `app.js` içindeki örnek `example.com` URL'lerini değiştir.
 
+## Geçici giriş
+
+Ana ekrana erişim için iki geçici demo hesabı eklidir: `oyuncu1` ve `oyuncu2`. Her ikisinin şifresi `mixgame2026`dır. Bu doğrulama yalnızca tarayıcıda yapılır; gerçek kullanıcı verisi veya güvenli şifre saklama sağlamaz. Canlı üyelik için Supabase Auth veya Firebase Authentication gibi sunucu taraflı bir çözüm kullanılmalıdır.
+
 ## Erişilebilirlik ve performans
 
 - Klavye odağı, açıklayıcı bağlantı etiketleri ve atlama bağlantısı içerir.

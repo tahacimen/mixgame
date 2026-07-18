@@ -16,6 +16,64 @@ const games = [
   { title: "Nova Strike", category: "Aksiyon", hue: "#ff9479", bg: "linear-gradient(135deg,#4a1e2c,#a23b41)", url: "https://example.com/nova-strike" },
 ];
 
+// Temporary front-end demo only. Move identity checks to a secure service before production.
+const demoUsers = {
+  oyuncu1: { password: "mixgame2026", displayName: "Oyuncu 1" },
+  oyuncu2: { password: "mixgame2026", displayName: "Oyuncu 2" },
+};
+const loginForm = document.querySelector("#login-form");
+const loginError = document.querySelector("#login-error");
+const loginSubmit = document.querySelector("#login-submit");
+const headerUser = document.querySelector("#header-user");
+const currentUser = document.querySelector("#current-user");
+
+function setAuthenticatedUser(username) {
+  const user = demoUsers[username];
+  if (!user) return;
+  sessionStorage.setItem("mixgame-user", username);
+  document.body.classList.add("is-authenticated");
+  headerUser.hidden = false;
+  currentUser.textContent = user.displayName;
+}
+
+loginForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const username = loginForm.elements.username.value.trim().toLowerCase();
+  const password = loginForm.elements.password.value;
+  loginError.textContent = "";
+  loginSubmit.disabled = true;
+  loginSubmit.textContent = "Kontrol ediliyor…";
+  window.setTimeout(() => {
+    if (demoUsers[username]?.password === password) {
+      setAuthenticatedUser(username);
+      loginForm.reset();
+    } else {
+      loginError.textContent = "Kullanıcı adı veya şifre doğru değil. Test hesaplarını kontrol et.";
+      loginForm.elements.username.focus();
+    }
+    loginSubmit.disabled = false;
+    loginSubmit.innerHTML = 'Giriş yap <span aria-hidden="true">→</span>';
+  }, 260);
+});
+
+document.querySelector("#password-toggle").addEventListener("click", (event) => {
+  const passwordInput = loginForm.elements.password;
+  const shown = passwordInput.type === "text";
+  passwordInput.type = shown ? "password" : "text";
+  event.currentTarget.textContent = shown ? "Göster" : "Gizle";
+  event.currentTarget.setAttribute("aria-pressed", String(!shown));
+});
+
+document.querySelector("#logout-button").addEventListener("click", () => {
+  sessionStorage.removeItem("mixgame-user");
+  document.body.classList.remove("is-authenticated");
+  headerUser.hidden = true;
+  loginForm.elements.username.focus();
+});
+
+const savedUser = sessionStorage.getItem("mixgame-user");
+if (demoUsers[savedUser]) setAuthenticatedUser(savedUser);
+
 const categories = ["Tümü", ...new Set(games.map(({ category }) => category))];
 const grid = document.querySelector("#games-grid");
 const cardTemplate = document.querySelector("#game-card-template");

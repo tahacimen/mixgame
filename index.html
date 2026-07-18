@@ -16,14 +16,41 @@
     <div class="ambient ambient-one" aria-hidden="true"></div>
     <div class="ambient ambient-two" aria-hidden="true"></div>
 
+    <section class="login-screen" id="login-screen" aria-labelledby="login-title">
+      <div class="login-card">
+        <a class="brand" href="#top" aria-label="MixGame">
+          <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          <span>MixGame</span>
+        </a>
+        <p class="eyebrow">ÜYE GİRİŞİ</p>
+        <h1 id="login-title">Oyunlara<br /><em>giriş yap.</em></h1>
+        <p class="login-copy">Koleksiyonuna ulaşmak için hesabını kullan.</p>
+        <form class="login-form" id="login-form">
+          <div class="field-group">
+            <label for="username">Kullanıcı adı</label>
+            <input id="username" name="username" type="text" autocomplete="username" required />
+          </div>
+          <div class="field-group">
+            <div class="label-row"><label for="password">Şifre</label><button class="text-button" id="password-toggle" type="button" aria-controls="password" aria-pressed="false">Göster</button></div>
+            <input id="password" name="password" type="password" autocomplete="current-password" required />
+          </div>
+          <p class="login-error" id="login-error" role="alert" aria-live="assertive"></p>
+          <button class="login-submit" id="login-submit" type="submit">Giriş yap <span aria-hidden="true">→</span></button>
+        </form>
+        <p class="demo-access">Geçici test hesapları: <b>oyuncu1</b> veya <b>oyuncu2</b> — şifre: <b>mixgame2026</b></p>
+      </div>
+    </section>
+
     <header class="site-header">
       <a class="brand" href="#top" aria-label="MixGame ana sayfa">
         <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
         <span>MixGame</span>
       </a>
-      <button class="header-action" type="button" data-scroll-to="games">
-        Tüm oyunlar <span aria-hidden="true">↓</span>
-      </button>
+      <div class="header-user" id="header-user" hidden>
+        <span>Merhaba, <b id="current-user"></b></span>
+        <button class="header-action logout-button" id="logout-button" type="button">Çıkış</button>
+      </div>
+      <button class="header-action" id="all-games-button" type="button" data-scroll-to="games">Tüm oyunlar <span aria-hidden="true">↓</span></button>
     </header>
 
     <main id="top">

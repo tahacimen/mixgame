@@ -19,12 +19,22 @@ body { margin: 0; min-width: 320px; color: var(--text); background: var(--bg); f
 button, a { font: inherit; }
 button { cursor: pointer; }
 a { color: inherit; text-decoration: none; }
+input { font: inherit; }
 
 .skip-link { position: fixed; top: -5rem; left: 1rem; z-index: 20; padding: .75rem 1rem; background: #fff; color: #121225; border-radius: 10px; }
 .skip-link:focus { top: 1rem; }
 .ambient { position: fixed; z-index: -1; border-radius: 50%; filter: blur(70px); pointer-events: none; opacity: .22; }
 .ambient-one { width: 22rem; height: 22rem; top: -8rem; right: -11rem; background: var(--purple-strong); }
 .ambient-two { width: 17rem; height: 17rem; top: 28rem; left: -10rem; background: var(--rose); }
+.login-screen { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 24px; background: rgba(8,8,23,.74); backdrop-filter: blur(16px); transition: opacity 240ms var(--ease), visibility 240ms var(--ease); }
+.login-card { width: min(100%, 410px); padding: 28px; border: 1px solid var(--border); border-radius: 26px; background: linear-gradient(145deg, rgba(31,31,58,.97), rgba(19,19,39,.98)); box-shadow: 0 24px 70px rgba(0,0,0,.42); }
+.login-card .brand { margin-bottom: 32px; }.login-card h1 { margin-bottom: 13px; font-size: clamp(2.15rem, 11vw, 3.1rem); }.login-copy { margin-bottom: 24px; color: var(--muted); line-height: 1.55; }
+.login-form { display: grid; gap: 16px; }.field-group { display: grid; gap: 7px; }.field-group label { font-size: .84rem; font-weight: 700; }.label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.field-group input { width: 100%; min-height: 48px; padding: 0 13px; color: var(--text); border: 1px solid var(--border); border-radius: 12px; outline: none; background: rgba(8,8,23,.55); transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease); }.field-group input:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(167,139,250,.2); }
+.text-button { min-height: 30px; padding: 0; color: var(--purple); border: 0; background: none; font-size: .78rem; font-weight: 700; }.text-button:focus-visible, .header-action:focus-visible { outline: 2px solid var(--purple); outline-offset: 3px; border-radius: 4px; }
+.login-error { min-height: 1.2em; margin: -5px 0 0; color: #ff9eb0; font-size: .78rem; font-weight: 600; }.login-submit { min-height: 50px; margin-top: 1px; border: 0; border-radius: 13px; color: #fff; background: linear-gradient(120deg, var(--purple-strong), #9257f5); font-weight: 700; box-shadow: 0 8px 22px rgba(124,58,237,.3); transition: transform 180ms var(--ease), filter 180ms var(--ease); }.login-submit:hover, .login-submit:focus-visible { filter: brightness(1.12); transform: translateY(-2px); }.login-submit:active { transform: scale(.98); }.login-submit:disabled { opacity: .66; cursor: wait; transform: none; }
+.demo-access { margin: 20px 0 0; color: var(--muted); font-size: .72rem; line-height: 1.55; }.demo-access b { color: #ded9ff; }
+body:not(.is-authenticated) .site-header, body:not(.is-authenticated) main, body:not(.is-authenticated) footer { filter: blur(7px); pointer-events: none; user-select: none; }.is-authenticated .login-screen { opacity: 0; visibility: hidden; pointer-events: none; }.header-user { display: flex; align-items: center; gap: 13px; color: var(--muted); font-size: .82rem; }.header-user b { color: var(--text); }.logout-button { color: var(--purple); }.is-authenticated #all-games-button { display: none; }
 
 .site-header, main, footer { width: min(100% - 32px, 1180px); margin-inline: auto; }
 .site-header { min-height: 76px; display: flex; align-items: center; justify-content: space-between; }
