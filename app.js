@@ -1,0 +1,121 @@
+const games = [
+  { title: "Neon Drift", category: "Yarış", hue: "#ff4d7d", bg: "linear-gradient(135deg,#24164f,#bf1748)", url: "https://example.com/neon-drift" },
+  { title: "Skybound", category: "Macera", hue: "#62d8ff", bg: "linear-gradient(135deg,#163856,#3157bc)", url: "https://example.com/skybound" },
+  { title: "Rune Logic", category: "Bulmaca", hue: "#f9cc64", bg: "linear-gradient(135deg,#3d214a,#9f4c58)", url: "https://example.com/rune-logic" },
+  { title: "Pixel Arena", category: "Aksiyon", hue: "#a3f27f", bg: "linear-gradient(135deg,#113b35,#26735d)", url: "https://example.com/pixel-arena" },
+  { title: "Orbit Zero", category: "Zeka", hue: "#b39aff", bg: "linear-gradient(135deg,#161845,#463593)", url: "https://example.com/orbit-zero" },
+  { title: "Wild Circuit", category: "Yarış", hue: "#f57f58", bg: "linear-gradient(135deg,#4b1e23,#a54632)", url: "https://example.com/wild-circuit" },
+  { title: "Moss & Myth", category: "Macera", hue: "#99df84", bg: "linear-gradient(135deg,#17352e,#3f7451)", url: "https://example.com/moss-myth" },
+  { title: "Gridlock", category: "Bulmaca", hue: "#f2afca", bg: "linear-gradient(135deg,#3d1e3d,#7c366d)", url: "https://example.com/gridlock" },
+  { title: "Laser Leap", category: "Aksiyon", hue: "#ff66de", bg: "linear-gradient(135deg,#351344,#8e2476)", url: "https://example.com/laser-leap" },
+  { title: "Codebreak", category: "Zeka", hue: "#62e8e0", bg: "linear-gradient(135deg,#123c4d,#247a85)", url: "https://example.com/codebreak" },
+  { title: "Turbo Bloom", category: "Yarış", hue: "#f6ea5f", bg: "linear-gradient(135deg,#524015,#b28d26)", url: "https://example.com/turbo-bloom" },
+  { title: "Moonlit Vale", category: "Macera", hue: "#d5b4ff", bg: "linear-gradient(135deg,#322049,#6c4b8b)", url: "https://example.com/moonlit-vale" },
+  { title: "Tactix", category: "Zeka", hue: "#92b8ff", bg: "linear-gradient(135deg,#15294c,#3858a8)", url: "https://example.com/tactix" },
+  { title: "Prism Path", category: "Bulmaca", hue: "#a5f1cf", bg: "linear-gradient(135deg,#17423d,#2f886e)", url: "https://example.com/prism-path" },
+  { title: "Nova Strike", category: "Aksiyon", hue: "#ff9479", bg: "linear-gradient(135deg,#4a1e2c,#a23b41)", url: "https://example.com/nova-strike" },
+];
+
+const categories = ["Tümü", ...new Set(games.map(({ category }) => category))];
+const grid = document.querySelector("#games-grid");
+const cardTemplate = document.querySelector("#game-card-template");
+const categoryBar = document.querySelector("#category-bar");
+const gameCount = document.querySelector("#game-count");
+let activeCategory = "Tümü";
+
+function setArt(el, game) {
+  el.style.setProperty("--card-bg", game.bg);
+  el.style.setProperty("--card-glow", game.hue);
+  el.style.setProperty("--orb", game.hue);
+}
+
+function renderGrid() {
+  const selected = activeCategory === "Tümü" ? games : games.filter(({ category }) => category === activeCategory);
+  grid.replaceChildren();
+  const fragment = document.createDocumentFragment();
+  selected.forEach((game, index) => {
+    const card = cardTemplate.content.cloneNode(true);
+    const link = card.querySelector(".game-card");
+    const art = card.querySelector(".game-art");
+    link.href = game.url;
+    link.setAttribute("aria-label", `${game.title} oyununa git (yeni sekmede açılır)`);
+    link.style.animationDelay = `${index * 35}ms`;
+    card.querySelector(".game-title").textContent = game.title;
+    setArt(art, game);
+    fragment.append(card);
+  });
+  grid.append(fragment);
+  gameCount.textContent = selected.length;
+}
+
+function renderCategories() {
+  categories.forEach((category) => {
+    const chip = document.createElement("button");
+    chip.className = "chip";
+    chip.type = "button";
+    chip.role = "tab";
+    chip.textContent = category;
+    chip.setAttribute("aria-selected", String(category === activeCategory));
+    chip.addEventListener("click", () => {
+      activeCategory = category;
+      [...categoryBar.children].forEach((item) => item.setAttribute("aria-selected", String(item.textContent === category)));
+      renderGrid();
+    });
+    categoryBar.append(chip);
+  });
+}
+
+const featuredGames = [games[0], games[4], games[8], games[11]];
+const track = document.querySelector("#carousel-track");
+const dots = document.querySelector("#carousel-dots");
+const featuredCount = document.querySelector("#featured-count");
+let featuredIndex = 0;
+let autoPlay;
+
+function renderFeatured() {
+  featuredGames.forEach((game, index) => {
+    const card = document.createElement("a");
+    card.className = "feature-card";
+    card.href = game.url;
+    card.target = "_blank";
+    card.rel = "noopener noreferrer";
+    card.setAttribute("aria-label", `${game.title} oyununa git (yeni sekmede açılır)`);
+    card.innerHTML = `<div class="game-art"><span class="art-orb"></span><span class="art-shape"></span><b></b></div><span class="tag">${game.category}</span><h3>${game.title}</h3>`;
+    setArt(card.querySelector(".game-art"), game);
+    track.append(card);
+    const dot = document.createElement("button");
+    dot.className = "dot";
+    dot.type = "button";
+    dot.setAttribute("aria-label", `${index + 1}. öne çıkan oyunu göster`);
+    dot.addEventListener("click", () => showFeatured(index));
+    dots.append(dot);
+  });
+}
+
+function showFeatured(index) {
+  featuredIndex = (index + featuredGames.length) % featuredGames.length;
+  const card = track.firstElementChild;
+  const gap = parseFloat(getComputedStyle(track).gap) || 14;
+  const distance = (card?.getBoundingClientRect().width || 0) + gap;
+  track.style.transform = `translateX(${-featuredIndex * distance}px)`;
+  [...dots.children].forEach((dot, i) => dot.classList.toggle("active", i === featuredIndex));
+  featuredCount.textContent = String(featuredIndex + 1).padStart(2, "0");
+}
+
+function restartAutoplay() {
+  clearInterval(autoPlay);
+  autoPlay = setInterval(() => showFeatured(featuredIndex + 1), 4500);
+}
+
+document.querySelector("#prev-featured").addEventListener("click", () => { showFeatured(featuredIndex - 1); restartAutoplay(); });
+document.querySelector("#next-featured").addEventListener("click", () => { showFeatured(featuredIndex + 1); restartAutoplay(); });
+track.parentElement.addEventListener("mouseenter", () => clearInterval(autoPlay));
+track.parentElement.addEventListener("mouseleave", restartAutoplay);
+window.addEventListener("resize", () => showFeatured(featuredIndex));
+document.querySelector("[data-scroll-to]").addEventListener("click", () => document.querySelector("#games").scrollIntoView({ behavior: "smooth" }));
+
+renderCategories();
+renderGrid();
+renderFeatured();
+showFeatured(0);
+restartAutoplay();
