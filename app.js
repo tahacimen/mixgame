@@ -210,10 +210,21 @@ document.querySelector("#save-games").addEventListener("click", () => {
   const rows = [...adminRows.querySelectorAll(".admin-row")];
   const nextGames = rows.map((row, index) => {
     const values = Object.fromEntries([...row.querySelectorAll("input")].map((input) => [input.name, input.value.trim()]));
-    return { ...values, hue: defaultGames[index % defaultGames.length].hue, bg: defaultGames[index % defaultGames.length].bg };
+    const url = values.url && !/^[a-z][a-z\d+.-]*:\/\//i.test(values.url) ? `https://${values.url}` : values.url;
+    return { ...values, url, hue: defaultGames[index % defaultGames.length].hue, bg: defaultGames[index % defaultGames.length].bg };
   });
-  if (!nextGames.length || nextGames.some(({ title, category, url }) => !title || !category || !/^https?:\/\//i.test(url))) { adminError.textContent = "Her satırda oyun adı, kategori ve https:// ile başlayan geçerli bir bağlantı olmalı."; return; }
-  games = nextGames; localStorage.setItem("mixgame-games", JSON.stringify(games)); activeCategory = "Tümü"; featuredIndex = 0; renderCategories(); renderGrid(); renderFeatured(); showFeatured(0); closeAdminPanel();
+  if (!nextGames.length || nextGames.some(({ title, category, url }) => !title || !category || !url)) { adminError.textContent = "Her satırda oyun adı, kategori ve bağlantı alanı dolu olmalı."; return; }
+  try {
+    games = nextGames;
+    localStorage.setItem("mixgame-games", JSON.stringify(games));
+  } catch {
+    adminError.textContent = "Tarayıcı bu cihazda yerel kayıt izni vermiyor. Gizli moddan çıkıp tekrar dene.";
+    return;
+  }
+  activeCategory = "Tümü"; featuredIndex = 0; renderCategories(); renderGrid(); renderFeatured(); showFeatured(0);
+  adminError.style.color = "#9ee6b2";
+  adminError.textContent = "Kaydedildi. Oyun listesi güncellendi.";
+  window.setTimeout(() => { adminError.style.color = ""; closeAdminPanel(); }, 700);
 });
 adminModal.addEventListener("click", (event) => { if (event.target === adminModal) closeAdminPanel(); });
 document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !adminModal.hidden) closeAdminPanel(); });
