@@ -41,6 +41,16 @@
       </div>
     </section>
 
+    <section class="admin-modal" id="admin-modal" aria-labelledby="admin-title" aria-modal="true" role="dialog" hidden>
+      <div class="admin-card">
+        <div class="admin-topline"><div><p class="eyebrow">YÖNETİM</p><h2 id="admin-title">Oyun linkleri</h2></div><button class="round-button" id="close-admin" type="button" aria-label="Yönetim panelini kapat">×</button></div>
+        <p class="admin-copy">Oyun adını, kategoriyi ve yönlendirme bağlantısını düzenle. Kaydettiğinde bu tarayıcıda anında güncellenir.</p>
+        <div class="admin-rows" id="admin-rows"></div>
+        <div class="admin-actions"><button class="secondary-button" id="add-game" type="button">+ Oyun ekle</button><button class="login-submit" id="save-games" type="button">Değişiklikleri kaydet</button></div>
+        <p class="login-error" id="admin-error" role="alert" aria-live="assertive"></p>
+      </div>
+    </section>
+
     <header class="site-header">
       <a class="brand" href="#top" aria-label="MixGame ana sayfa">
         <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
@@ -48,6 +58,7 @@
       </a>
       <div class="header-user" id="header-user" hidden>
         <span>Merhaba, <b id="current-user"></b></span>
+        <button class="header-action admin-button" id="admin-button" type="button" hidden>Yönet</button>
         <button class="header-action logout-button" id="logout-button" type="button">Çıkış</button>
       </div>
       <button class="header-action" id="all-games-button" type="button" data-scroll-to="games">Tüm oyunlar <span aria-hidden="true">↓</span></button>

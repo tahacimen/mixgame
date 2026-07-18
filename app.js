@@ -1,4 +1,4 @@
-const games = [
+const defaultGames = [
   { title: "Neon Drift", category: "Yarış", hue: "#ff4d7d", bg: "linear-gradient(135deg,#24164f,#bf1748)", url: "https://example.com/neon-drift" },
   { title: "Skybound", category: "Macera", hue: "#62d8ff", bg: "linear-gradient(135deg,#163856,#3157bc)", url: "https://example.com/skybound" },
   { title: "Rune Logic", category: "Bulmaca", hue: "#f9cc64", bg: "linear-gradient(135deg,#3d214a,#9f4c58)", url: "https://example.com/rune-logic" },
@@ -15,6 +15,12 @@ const games = [
   { title: "Prism Path", category: "Bulmaca", hue: "#a5f1cf", bg: "linear-gradient(135deg,#17423d,#2f886e)", url: "https://example.com/prism-path" },
   { title: "Nova Strike", category: "Aksiyon", hue: "#ff9479", bg: "linear-gradient(135deg,#4a1e2c,#a23b41)", url: "https://example.com/nova-strike" },
 ];
+let games = (() => {
+  try {
+    const saved = JSON.parse(localStorage.getItem("mixgame-games"));
+    return Array.isArray(saved) && saved.length ? saved : defaultGames;
+  } catch { return defaultGames; }
+})();
 
 // Temporary front-end demo only. Move identity checks to a secure service before production.
 const demoUsers = {
@@ -26,6 +32,7 @@ const loginError = document.querySelector("#login-error");
 const loginSubmit = document.querySelector("#login-submit");
 const headerUser = document.querySelector("#header-user");
 const currentUser = document.querySelector("#current-user");
+const adminButton = document.querySelector("#admin-button");
 
 function setAuthenticatedUser(username) {
   const user = demoUsers[username];
@@ -34,6 +41,7 @@ function setAuthenticatedUser(username) {
   document.body.classList.add("is-authenticated");
   headerUser.hidden = false;
   currentUser.textContent = user.displayName;
+  adminButton.hidden = username !== "oyuncu1";
 }
 
 loginForm.addEventListener("submit", (event) => {
@@ -68,13 +76,13 @@ document.querySelector("#logout-button").addEventListener("click", () => {
   sessionStorage.removeItem("mixgame-user");
   document.body.classList.remove("is-authenticated");
   headerUser.hidden = true;
+  adminButton.hidden = true;
   loginForm.elements.username.focus();
 });
 
 const savedUser = sessionStorage.getItem("mixgame-user");
 if (demoUsers[savedUser]) setAuthenticatedUser(savedUser);
 
-const categories = ["Tümü", ...new Set(games.map(({ category }) => category))];
 const grid = document.querySelector("#games-grid");
 const cardTemplate = document.querySelector("#game-card-template");
 const categoryBar = document.querySelector("#category-bar");
@@ -107,6 +115,9 @@ function renderGrid() {
 }
 
 function renderCategories() {
+  const categories = ["Tümü", ...new Set(games.map(({ category }) => category))];
+  if (!categories.includes(activeCategory)) activeCategory = "Tümü";
+  categoryBar.replaceChildren();
   categories.forEach((category) => {
     const chip = document.createElement("button");
     chip.className = "chip";
@@ -123,7 +134,7 @@ function renderCategories() {
   });
 }
 
-const featuredGames = [games[0], games[4], games[8], games[11]];
+let featuredGames = [];
 const track = document.querySelector("#carousel-track");
 const dots = document.querySelector("#carousel-dots");
 const featuredCount = document.querySelector("#featured-count");
@@ -131,6 +142,9 @@ let featuredIndex = 0;
 let autoPlay;
 
 function renderFeatured() {
+  featuredGames = games.slice(0, 4);
+  track.replaceChildren();
+  dots.replaceChildren();
   featuredGames.forEach((game, index) => {
     const card = document.createElement("a");
     card.className = "feature-card";
@@ -171,6 +185,38 @@ track.parentElement.addEventListener("mouseenter", () => clearInterval(autoPlay)
 track.parentElement.addEventListener("mouseleave", restartAutoplay);
 window.addEventListener("resize", () => showFeatured(featuredIndex));
 document.querySelector("[data-scroll-to]").addEventListener("click", () => document.querySelector("#games").scrollIntoView({ behavior: "smooth" }));
+
+const adminModal = document.querySelector("#admin-modal");
+const adminRows = document.querySelector("#admin-rows");
+const adminError = document.querySelector("#admin-error");
+
+function createAdminRow(game = { title: "Yeni oyun", category: "Aksiyon", url: "https://" }) {
+  const row = document.createElement("div");
+  row.className = "admin-row";
+  const fields = [["title", "Oyun adı", game.title], ["category", "Kategori", game.category], ["url", "https:// bağlantısı", game.url]];
+  fields.forEach(([name, placeholder, value]) => {
+    const input = document.createElement("input"); input.name = name; input.placeholder = placeholder; input.value = value; input.setAttribute("aria-label", placeholder); row.append(input);
+  });
+  const remove = document.createElement("button"); remove.className = "remove-game"; remove.type = "button"; remove.textContent = "×"; remove.setAttribute("aria-label", `${game.title} oyununu kaldır`); remove.addEventListener("click", () => row.remove()); row.append(remove);
+  return row;
+}
+function renderAdminRows() { adminRows.replaceChildren(...games.map((game) => createAdminRow(game))); }
+function openAdminPanel() { adminError.textContent = ""; renderAdminRows(); adminModal.hidden = false; adminRows.querySelector("input")?.focus(); }
+function closeAdminPanel() { adminModal.hidden = true; adminButton.focus(); }
+adminButton.addEventListener("click", openAdminPanel);
+document.querySelector("#close-admin").addEventListener("click", closeAdminPanel);
+document.querySelector("#add-game").addEventListener("click", () => { const row = createAdminRow(); adminRows.append(row); row.querySelector("input").focus(); });
+document.querySelector("#save-games").addEventListener("click", () => {
+  const rows = [...adminRows.querySelectorAll(".admin-row")];
+  const nextGames = rows.map((row, index) => {
+    const values = Object.fromEntries([...row.querySelectorAll("input")].map((input) => [input.name, input.value.trim()]));
+    return { ...values, hue: defaultGames[index % defaultGames.length].hue, bg: defaultGames[index % defaultGames.length].bg };
+  });
+  if (!nextGames.length || nextGames.some(({ title, category, url }) => !title || !category || !/^https?:\/\//i.test(url))) { adminError.textContent = "Her satırda oyun adı, kategori ve https:// ile başlayan geçerli bir bağlantı olmalı."; return; }
+  games = nextGames; localStorage.setItem("mixgame-games", JSON.stringify(games)); activeCategory = "Tümü"; featuredIndex = 0; renderCategories(); renderGrid(); renderFeatured(); showFeatured(0); closeAdminPanel();
+});
+adminModal.addEventListener("click", (event) => { if (event.target === adminModal) closeAdminPanel(); });
+document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !adminModal.hidden) closeAdminPanel(); });
 
 renderCategories();
 renderGrid();
