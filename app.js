@@ -98,6 +98,14 @@ function setArt(el, game) {
 function renderGrid() {
   const selected = activeCategory === "Tümü" ? games : games.filter(({ category }) => category === activeCategory);
   grid.replaceChildren();
+  if (!selected.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-games";
+    empty.textContent = "Bu kategoride henüz oyun yok.";
+    grid.append(empty);
+    gameCount.textContent = "0";
+    return;
+  }
   const fragment = document.createDocumentFragment();
   selected.forEach((game, index) => {
     const card = cardTemplate.content.cloneNode(true);
@@ -165,6 +173,11 @@ function renderFeatured() {
 }
 
 function showFeatured(index) {
+  if (!featuredGames.length) {
+    track.style.transform = "translateX(0)";
+    featuredCount.textContent = "00";
+    return;
+  }
   featuredIndex = (index + featuredGames.length) % featuredGames.length;
   const card = track.firstElementChild;
   const gap = parseFloat(getComputedStyle(track).gap) || 14;
@@ -213,7 +226,7 @@ document.querySelector("#save-games").addEventListener("click", () => {
     const url = values.url && !/^[a-z][a-z\d+.-]*:\/\//i.test(values.url) ? `https://${values.url}` : values.url;
     return { ...values, url, hue: defaultGames[index % defaultGames.length].hue, bg: defaultGames[index % defaultGames.length].bg };
   });
-  if (!nextGames.length || nextGames.some(({ title, category, url }) => !title || !category || !url)) { adminError.textContent = "Her satırda oyun adı, kategori ve bağlantı alanı dolu olmalı."; return; }
+  if (nextGames.some(({ title, category, url }) => !title || !category || !url)) { adminError.textContent = "Her satırda oyun adı, kategori ve bağlantı alanı dolu olmalı."; return; }
   try {
     games = nextGames;
     localStorage.setItem("mixgame-games", JSON.stringify(games));
