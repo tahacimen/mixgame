@@ -92,6 +92,31 @@ const categoryBar = document.querySelector("#category-bar");
 const gameCount = document.querySelector("#game-count");
 let activeCategory = "Tümü";
 
+function getGameImage(game) {
+  if (/^data:image\/(?:png|jpe?g|webp|gif);base64,/i.test(game.image || "")) {
+    return { source: game.image, automatic: false };
+  }
+  try {
+    const savedImage = new URL(game.image || "");
+    if (["http:", "https:"].includes(savedImage.protocol)) {
+      return { source: savedImage.href, automatic: false };
+    }
+  } catch {
+    // Continue with an automatically discovered site logo.
+  }
+  try {
+    const gameUrl = new URL(game.url);
+    if (!["http:", "https:"].includes(gameUrl.protocol)) return null;
+    if (gameUrl.hostname === "example.com") return null;
+    return {
+      source: `https://www.google.com/s2/favicons?sz=256&domain_url=${encodeURIComponent(gameUrl.origin)}`,
+      automatic: true,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function setArt(el, game) {
   el.style.setProperty("--card-bg", game.bg);
   el.style.setProperty("--card-glow", game.hue);
@@ -99,18 +124,18 @@ function setArt(el, game) {
   el.style.backgroundImage = "";
   el.style.backgroundSize = "";
   el.style.backgroundPosition = "";
+  el.style.backgroundRepeat = "";
+  el.classList.remove("has-image", "has-auto-logo");
 
-  if (!game.image) return;
-  try {
-    const imageUrl = new URL(game.image);
-    if (!["http:", "https:"].includes(imageUrl.protocol)) return;
-    const safeUrl = imageUrl.href.replaceAll('"', "%22");
-    el.style.backgroundImage = `linear-gradient(135deg, rgba(15,15,35,.18), rgba(15,15,35,.58)), url("${safeUrl}")`;
-    el.style.backgroundSize = "cover";
-    el.style.backgroundPosition = "center";
-  } catch {
-    // An invalid optional image URL should not block the rest of the game card.
-  }
+  const image = getGameImage(game);
+  if (!image) return;
+  const safeUrl = image.source.replaceAll('"', "%22");
+  el.classList.add("has-image");
+  el.classList.toggle("has-auto-logo", image.automatic);
+  el.style.backgroundImage = `linear-gradient(135deg, rgba(15,15,35,.12), rgba(15,15,35,.42)), url("${safeUrl}")`;
+  el.style.backgroundSize = image.automatic ? "cover, 52%" : "cover";
+  el.style.backgroundPosition = "center";
+  el.style.backgroundRepeat = "no-repeat";
 }
 
 function renderGrid() {
@@ -221,18 +246,96 @@ const adminModal = document.querySelector("#admin-modal");
 const adminRows = document.querySelector("#admin-rows");
 const adminError = document.querySelector("#admin-error");
 
+function optimizeGameImage(file) {
+  return new Promise((resolve, reject) => {
+    if (!file?.type.startsWith("image/")) {
+      reject(new Error("Lütfen PNG, JPG veya WebP türünde bir görsel seç."));
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      reject(new Error("Görsel en fazla 8 MB olabilir."));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Görsel okunamadı. Başka bir dosya dene."));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => reject(new Error("Bu görsel işlenemedi. PNG veya JPG dene."));
+      image.onload = () => {
+        const maxEdge = 640;
+        const scale = Math.min(1, maxEdge / Math.max(image.width, image.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+        const context = canvas.getContext("2d");
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/webp", .82));
+      };
+      image.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function updateImagePicker(row, statusText) {
+  const preview = row.querySelector(".image-preview");
+  const status = row.querySelector(".image-status");
+  const clearButton = row.querySelector(".clear-image");
+  const uploadedImage = row.dataset.image;
+  if (uploadedImage) {
+    preview.style.backgroundImage = `url("${uploadedImage.replaceAll('"', "%22")}")`;
+    preview.classList.add("has-preview");
+    clearButton.hidden = false;
+    status.textContent = statusText || "Görsel hazır";
+  } else {
+    preview.style.backgroundImage = "";
+    preview.classList.remove("has-preview");
+    clearButton.hidden = true;
+    status.textContent = "Görsel seçilmezse site logosu otomatik kullanılır";
+  }
+}
+
 function createAdminRow(game = { title: "Yeni oyun", category: "Aksiyon", url: "https://", image: "" }) {
   const row = document.createElement("div");
   row.className = "admin-row";
+  row.dataset.image = game.image || "";
   const fields = [
     ["title", "Oyun adı", game.title],
     ["category", "Kategori", game.category],
     ["url", "Oyun bağlantısı (https://)", game.url],
-    ["image", "Görsel URL'si (isteğe bağlı)", game.image || ""],
   ];
   fields.forEach(([name, placeholder, value]) => {
-    const input = document.createElement("input"); input.name = name; input.placeholder = placeholder; input.value = value; input.setAttribute("aria-label", placeholder); row.append(input);
+    const input = document.createElement("input"); input.type = "text"; input.name = name; input.placeholder = placeholder; input.value = value; input.setAttribute("aria-label", placeholder); row.append(input);
   });
+  const picker = document.createElement("div");
+  picker.className = "image-picker";
+  picker.innerHTML = '<span class="image-preview" aria-hidden="true"></span><span class="image-picker-copy"><b>Oyun görseli</b><small class="image-status"></small></span><button class="image-select" type="button">Görsel seç</button><input class="image-input" type="file" accept="image/*" hidden /><button class="clear-image" type="button" aria-label="Yüklenen oyun görselini sil" hidden>Sil</button>';
+  const fileInput = picker.querySelector(".image-input");
+  picker.querySelector(".image-select").addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", async () => {
+    const [file] = fileInput.files;
+    if (!file) return;
+    row.dataset.processing = "true";
+    adminError.textContent = "";
+    picker.querySelector(".image-status").textContent = "Görsel hazırlanıyor…";
+    try {
+      row.dataset.image = await optimizeGameImage(file);
+      updateImagePicker(row, file.name);
+    } catch (error) {
+      adminError.textContent = error.message;
+      fileInput.value = "";
+      updateImagePicker(row);
+    } finally {
+      delete row.dataset.processing;
+    }
+  });
+  picker.querySelector(".clear-image").addEventListener("click", () => {
+    row.dataset.image = "";
+    fileInput.value = "";
+    updateImagePicker(row);
+  });
+  row.append(picker);
+  updateImagePicker(row);
   const remove = document.createElement("button"); remove.className = "remove-game"; remove.type = "button"; remove.textContent = "×"; remove.setAttribute("aria-label", `${game.title} oyununu kaldır`); remove.addEventListener("click", () => row.remove()); row.append(remove);
   return row;
 }
@@ -244,11 +347,15 @@ document.querySelector("#close-admin").addEventListener("click", closeAdminPanel
 document.querySelector("#add-game").addEventListener("click", () => { const row = createAdminRow(); adminRows.append(row); row.querySelector("input").focus(); });
 document.querySelector("#save-games").addEventListener("click", () => {
   const rows = [...adminRows.querySelectorAll(".admin-row")];
+  if (rows.some((row) => row.dataset.processing)) {
+    adminError.textContent = "Görsel hazırlanıyor; birkaç saniye sonra tekrar kaydet.";
+    return;
+  }
   const nextGames = rows.map((row, index) => {
-    const values = Object.fromEntries([...row.querySelectorAll("input")].map((input) => [input.name, input.value.trim()]));
+    const values = Object.fromEntries([...row.querySelectorAll('input[type="text"]')].map((input) => [input.name, input.value.trim()]));
     const normalizeUrl = (value) => value && !/^[a-z][a-z\d+.-]*:\/\//i.test(value) ? `https://${value}` : value;
     const url = normalizeUrl(values.url);
-    const image = normalizeUrl(values.image);
+    const image = row.dataset.image || "";
     return { ...values, url, image, hue: defaultGames[index % defaultGames.length].hue, bg: defaultGames[index % defaultGames.length].bg };
   });
   if (nextGames.some(({ title, category, url }) => !title || !category || !url)) { adminError.textContent = "Her satırda oyun adı, kategori ve bağlantı alanı dolu olmalı."; return; }
