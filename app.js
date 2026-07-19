@@ -35,6 +35,7 @@ const headerUser = document.querySelector("#header-user");
 const currentUser = document.querySelector("#current-user");
 const currentRole = document.querySelector("#current-role");
 const adminButton = document.querySelector("#admin-button");
+let activeUsername = "";
 
 function canEdit(user) {
   return user?.role === "admin" || user?.role === "editor";
@@ -43,11 +44,13 @@ function canEdit(user) {
 function setAuthenticatedUser(username) {
   const user = demoUsers[username];
   if (!user) return;
+  activeUsername = username;
   document.body.classList.add("is-authenticated");
   headerUser.hidden = false;
   currentUser.textContent = user.displayName;
   currentRole.textContent = user.roleLabel;
   adminButton.hidden = !canEdit(user);
+  renderGrid();
 }
 
 loginForm.addEventListener("submit", (event) => {
@@ -79,10 +82,12 @@ document.querySelector("#password-toggle").addEventListener("click", (event) => 
 });
 
 document.querySelector("#logout-button").addEventListener("click", () => {
+  activeUsername = "";
   document.body.classList.remove("is-authenticated");
   headerUser.hidden = true;
   adminButton.hidden = true;
   currentRole.textContent = "";
+  resetDiscovery();
   loginForm.elements.username.focus();
 });
 
@@ -90,7 +95,55 @@ const grid = document.querySelector("#games-grid");
 const cardTemplate = document.querySelector("#game-card-template");
 const categoryBar = document.querySelector("#category-bar");
 const gameCount = document.querySelector("#game-count");
+const searchInput = document.querySelector("#game-search");
+const viewButtons = [...document.querySelectorAll("[data-view]")];
 let activeCategory = "Tümü";
+let activeView = "all";
+let searchQuery = "";
+
+function getUserList(type) {
+  if (!activeUsername) return [];
+  try {
+    const saved = JSON.parse(localStorage.getItem(`mixgame-${type}-${activeUsername}`));
+    return Array.isArray(saved) ? saved : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveUserList(type, items) {
+  if (!activeUsername) return;
+  try {
+    localStorage.setItem(`mixgame-${type}-${activeUsername}`, JSON.stringify(items));
+  } catch {
+    // The portal remains usable if personal shortcuts cannot be stored.
+  }
+}
+
+function markRecentlyOpened(game) {
+  const recent = getUserList("recent").filter((url) => url !== game.url);
+  saveUserList("recent", [game.url, ...recent].slice(0, 12));
+  if (activeView === "recent") renderGrid();
+}
+
+function toggleFavorite(game) {
+  const favorites = getUserList("favorites");
+  const next = favorites.includes(game.url)
+    ? favorites.filter((url) => url !== game.url)
+    : [game.url, ...favorites];
+  saveUserList("favorites", next);
+  renderGrid();
+}
+
+function resetDiscovery() {
+  activeCategory = "Tümü";
+  activeView = "all";
+  searchQuery = "";
+  searchInput.value = "";
+  viewButtons.forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.view === "all")));
+  renderCategories();
+  renderGrid();
+}
 
 function getGameImage(game) {
   if (/^data:image\/(?:png|jpe?g|webp|gif);base64,/i.test(game.image || "")) {
@@ -139,12 +192,38 @@ function setArt(el, game) {
 }
 
 function renderGrid() {
-  const selected = activeCategory === "Tümü" ? games : games.filter(({ category }) => category === activeCategory);
+  const favorites = getUserList("favorites");
+  const recent = getUserList("recent");
+  let selected = [...games];
+  if (activeView === "favorites") {
+    selected = selected.filter(({ url }) => favorites.includes(url));
+  } else if (activeView === "recent") {
+    selected = recent.map((url) => games.find((game) => game.url === url)).filter(Boolean);
+  }
+  if (activeCategory !== "Tümü") {
+    selected = selected.filter(({ category }) => category === activeCategory);
+  }
+  if (searchQuery) {
+    selected = selected.filter(({ title, category }) => `${title} ${category}`.toLocaleLowerCase("tr").includes(searchQuery));
+  }
   grid.replaceChildren();
   if (!selected.length) {
-    const empty = document.createElement("p");
+    const empty = document.createElement("div");
     empty.className = "empty-games";
-    empty.textContent = "Bu kategoride henüz oyun yok.";
+    const message = document.createElement("p");
+    if (searchQuery) message.textContent = `"${searchInput.value.trim()}" için eşleşen oyun bulunamadı.`;
+    else if (activeView === "favorites") message.textContent = "Henüz favori oyunun yok. Kartlardaki yıldızla hızlı listeni oluştur.";
+    else if (activeView === "recent") message.textContent = "Henüz oyun açmadın. Oynadığın oyunlar burada görünecek.";
+    else message.textContent = "Bu kategoride henüz oyun yok.";
+    empty.append(message);
+    if (searchQuery || activeView !== "all" || activeCategory !== "Tümü") {
+      const reset = document.createElement("button");
+      reset.className = "secondary-button empty-reset";
+      reset.type = "button";
+      reset.textContent = "Filtreleri temizle";
+      reset.addEventListener("click", resetDiscovery);
+      empty.append(reset);
+    }
     grid.append(empty);
     gameCount.textContent = "0";
     return;
@@ -152,11 +231,19 @@ function renderGrid() {
   const fragment = document.createDocumentFragment();
   selected.forEach((game, index) => {
     const card = cardTemplate.content.cloneNode(true);
+    const wrapper = card.querySelector(".game-card-wrap");
     const link = card.querySelector(".game-card");
     const art = card.querySelector(".game-art");
+    const favoriteButton = card.querySelector(".favorite-button");
+    const isFavorite = favorites.includes(game.url);
     link.href = game.url;
     link.setAttribute("aria-label", `${game.title} oyununa git (yeni sekmede açılır)`);
-    link.style.animationDelay = `${index * 35}ms`;
+    link.addEventListener("click", () => markRecentlyOpened(game));
+    wrapper.style.animationDelay = `${index * 35}ms`;
+    favoriteButton.setAttribute("aria-label", isFavorite ? `${game.title} oyununu favorilerden çıkar` : `${game.title} oyununu favorilere ekle`);
+    favoriteButton.setAttribute("aria-pressed", String(isFavorite));
+    favoriteButton.addEventListener("click", () => toggleFavorite(game));
+    card.querySelector(".game-category").textContent = game.category;
     card.querySelector(".game-title").textContent = game.title;
     setArt(art, game);
     fragment.append(card);
@@ -164,6 +251,19 @@ function renderGrid() {
   grid.append(fragment);
   gameCount.textContent = selected.length;
 }
+
+searchInput.addEventListener("input", () => {
+  searchQuery = searchInput.value.trim().toLocaleLowerCase("tr");
+  renderGrid();
+});
+
+viewButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    activeView = button.dataset.view;
+    viewButtons.forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+    renderGrid();
+  });
+});
 
 function renderCategories() {
   const categories = ["Tümü", ...new Set(games.map(({ category }) => category))];
@@ -203,6 +303,7 @@ function renderFeatured() {
     card.target = "_blank";
     card.rel = "noopener noreferrer";
     card.setAttribute("aria-label", `${game.title} oyununa git (yeni sekmede açılır)`);
+    card.addEventListener("click", () => markRecentlyOpened(game));
     card.innerHTML = `<div class="game-art"><span class="art-orb"></span><span class="art-shape"></span><b></b></div><span class="tag">${game.category}</span><h3>${game.title}</h3>`;
     setArt(card.querySelector(".game-art"), game);
     track.append(card);
@@ -366,7 +467,7 @@ document.querySelector("#save-games").addEventListener("click", () => {
     adminError.textContent = "Tarayıcı bu cihazda yerel kayıt izni vermiyor. Gizli moddan çıkıp tekrar dene.";
     return;
   }
-  activeCategory = "Tümü"; featuredIndex = 0; renderCategories(); renderGrid(); renderFeatured(); showFeatured(0);
+  resetDiscovery(); featuredIndex = 0; renderFeatured(); showFeatured(0);
   adminError.style.color = "#9ee6b2";
   adminError.textContent = "Kaydedildi. Oyun listesi güncellendi.";
   window.setTimeout(() => { adminError.style.color = ""; closeAdminPanel(); }, 700);

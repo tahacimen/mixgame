@@ -40,9 +40,11 @@ MOBİL (360–480)                 TABLET (600–1024)
 
 ## Geçici giriş
 
-Ana ekrana erişim için iki geçici demo hesabı eklidir: `oyuncu1` ve `oyuncu2`. Her ikisinin şifresi `mixgame2026`dır. Bu doğrulama yalnızca tarayıcıda yapılır; gerçek kullanıcı verisi veya güvenli şifre saklama sağlamaz. Canlı üyelik için Supabase Auth veya Firebase Authentication gibi sunucu taraflı bir çözüm kullanılmalıdır.
+Ana ekrana erişim için üç geçici demo hesabı eklidir: `oyuncu1` yönetici, `oyuncu2` oyuncu ve `oyuncu3` içerik editörüdür. Test şifresi `mixgame2026`dır. Bu doğrulama yalnızca tarayıcıda yapılır; gerçek kullanıcı verisi veya güvenli şifre saklama sağlamaz. Canlı üyelik için Supabase Auth veya Firebase Authentication gibi sunucu taraflı bir çözüm kullanılmalıdır.
 
-`oyuncu1` geçici yönetici hesabıdır. **Yönet** düğmesi ile oyun ekleme, düzenleme ve silme yapılabilir. Bu düzenlemeler tarayıcının yerel depolamasında kalır; başka cihazlara veya ziyaretçilere aktarılmaz.
+`oyuncu1` ve `oyuncu3`, **Yönet** düğmesi ile oyun ekleme, düzenleme, görsel yükleme ve silme işlemlerini yapabilir. Düzenlemeler tarayıcının yerel depolamasında kalır; başka cihazlara veya ziyaretçilere aktarılmaz.
+
+Oyuncular oyun adı/kategorisiyle anlık arama yapabilir, oyunları kullanıcıya özel favorilere ekleyebilir ve son açtıkları oyunları görebilir.
 
 ## Erişilebilirlik ve performans
 

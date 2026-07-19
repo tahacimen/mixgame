@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Russo+One&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="style.css?v=20260719-3" />
+    <link rel="stylesheet" href="style.css?v=20260719-4" />
   </head>
   <body>
     <a class="skip-link" href="#games">Oyun listesine geç</a>
@@ -37,7 +37,7 @@
           <p class="login-error" id="login-error" role="alert" aria-live="assertive"></p>
           <button class="login-submit" id="login-submit" type="submit">Giriş yap <span aria-hidden="true">→</span></button>
         </form>
-        <p class="demo-access"><b>oyuncu1</b>: yönetici · <b>oyuncu2</b>: oyuncu · <b>oyuncu3</b>: içerik editörü<br />Test şifresi: <b>mixgame2026</b></p>
+        <p class="demo-access">Yetkine göre oyun kütüphanesi veya içerik yönetimi görünümü açılır.</p>
       </div>
     </section>
 
@@ -100,6 +100,18 @@
           <p class="result-count"><span id="game-count">0</span> oyun</p>
         </div>
 
+        <div class="discovery-tools">
+          <label class="search-box" for="game-search">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+            <span class="sr-only">Oyun ara</span>
+            <input id="game-search" type="search" placeholder="Oyun veya kategori ara…" autocomplete="off" />
+          </label>
+          <div class="view-tabs" aria-label="Kütüphane görünümü">
+            <button class="view-chip" type="button" data-view="all" aria-pressed="true">Kütüphane</button>
+            <button class="view-chip" type="button" data-view="favorites" aria-pressed="false">Favoriler</button>
+            <button class="view-chip" type="button" data-view="recent" aria-pressed="false">Son açılanlar</button>
+          </div>
+        </div>
         <div class="chip-scroller" role="tablist" aria-label="Oyun kategorileri" id="category-bar"></div>
         <div class="games-grid" id="games-grid" aria-live="polite"></div>
       </section>
@@ -115,12 +127,18 @@
     </footer>
 
     <template id="game-card-template">
-      <a class="game-card" target="_blank" rel="noopener noreferrer">
-        <div class="game-art" aria-hidden="true"><span class="art-orb"></span><span class="art-shape"></span><b></b></div>
-        <span class="game-title"></span>
-        <span class="open-icon" aria-hidden="true">↗</span>
-      </a>
+      <article class="game-card-wrap">
+        <a class="game-card" target="_blank" rel="noopener noreferrer">
+          <div class="game-art" aria-hidden="true"><span class="art-orb"></span><span class="art-shape"></span><b></b></div>
+          <span class="game-category"></span>
+          <span class="game-title"></span>
+          <span class="open-icon" aria-hidden="true">↗</span>
+        </a>
+        <button class="favorite-button" type="button">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m12 3 2.75 5.57 6.15.9-4.45 4.33 1.05 6.12L12 17.03l-5.5 2.89 1.05-6.12L3.1 9.47l6.15-.9L12 3Z"></path></svg>
+        </button>
+      </article>
     </template>
-    <script src="app.js?v=20260719-3"></script>
+    <script src="app.js?v=20260719-4"></script>
   </body>
 </html>
