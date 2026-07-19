@@ -37,14 +37,14 @@
           <p class="login-error" id="login-error" role="alert" aria-live="assertive"></p>
           <button class="login-submit" id="login-submit" type="submit">Giriş yap <span aria-hidden="true">→</span></button>
         </form>
-        <p class="demo-access">Geçici test hesapları: <b>oyuncu1</b> veya <b>oyuncu2</b> — şifre: <b>mixgame2026</b></p>
+        <p class="demo-access"><b>oyuncu1</b>: yönetici · <b>oyuncu2</b>: oyuncu · <b>oyuncu3</b>: içerik editörü<br />Test şifresi: <b>mixgame2026</b></p>
       </div>
     </section>
 
     <section class="admin-modal" id="admin-modal" aria-labelledby="admin-title" aria-modal="true" role="dialog" hidden>
       <div class="admin-card">
         <div class="admin-topline"><div><p class="eyebrow">YÖNETİM</p><h2 id="admin-title">Oyun linkleri</h2></div><button class="round-button" id="close-admin" type="button" aria-label="Yönetim panelini kapat">×</button></div>
-        <p class="admin-copy">Oyun adını, kategoriyi ve yönlendirme bağlantısını düzenle. Kaydettiğinde bu tarayıcıda anında güncellenir.</p>
+        <p class="admin-copy">Oyun adını, kategoriyi, oyun bağlantısını ve isteğe bağlı görsel URL'sini düzenle. Kaydettiğinde bu tarayıcıda anında güncellenir.</p>
         <div class="admin-rows" id="admin-rows"></div>
         <div class="admin-actions"><button class="secondary-button" id="add-game" type="button">+ Oyun ekle</button><button class="login-submit" id="save-games" type="button">Değişiklikleri kaydet</button></div>
         <p class="login-error" id="admin-error" role="alert" aria-live="assertive"></p>
@@ -58,6 +58,7 @@
       </a>
       <div class="header-user" id="header-user" hidden>
         <span>Merhaba, <b id="current-user"></b></span>
+        <span class="user-role" id="current-role"></span>
         <button class="header-action admin-button" id="admin-button" type="button" hidden>Yönet</button>
         <button class="header-action logout-button" id="logout-button" type="button">Çıkış</button>
       </div>

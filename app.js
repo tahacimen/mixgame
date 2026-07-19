@@ -18,21 +18,27 @@ const defaultGames = [
 let games = (() => {
   try {
     const saved = JSON.parse(localStorage.getItem("mixgame-games"));
-    return Array.isArray(saved) && saved.length ? saved : defaultGames;
+    return Array.isArray(saved) ? saved : defaultGames;
   } catch { return defaultGames; }
 })();
 
 // Temporary front-end demo only. Move identity checks to a secure service before production.
 const demoUsers = {
-  oyuncu1: { password: "mixgame2026", displayName: "Oyuncu 1" },
-  oyuncu2: { password: "mixgame2026", displayName: "Oyuncu 2" },
+  oyuncu1: { password: "mixgame2026", displayName: "Oyuncu 1", role: "admin", roleLabel: "Yönetici" },
+  oyuncu2: { password: "mixgame2026", displayName: "Oyuncu 2", role: "player", roleLabel: "Oyuncu" },
+  oyuncu3: { password: "mixgame2026", displayName: "Oyuncu 3", role: "editor", roleLabel: "İçerik Editörü" },
 };
 const loginForm = document.querySelector("#login-form");
 const loginError = document.querySelector("#login-error");
 const loginSubmit = document.querySelector("#login-submit");
 const headerUser = document.querySelector("#header-user");
 const currentUser = document.querySelector("#current-user");
+const currentRole = document.querySelector("#current-role");
 const adminButton = document.querySelector("#admin-button");
+
+function canEdit(user) {
+  return user?.role === "admin" || user?.role === "editor";
+}
 
 function setAuthenticatedUser(username) {
   const user = demoUsers[username];
@@ -41,7 +47,8 @@ function setAuthenticatedUser(username) {
   document.body.classList.add("is-authenticated");
   headerUser.hidden = false;
   currentUser.textContent = user.displayName;
-  adminButton.hidden = username !== "oyuncu1";
+  currentRole.textContent = user.roleLabel;
+  adminButton.hidden = !canEdit(user);
 }
 
 loginForm.addEventListener("submit", (event) => {
@@ -77,6 +84,7 @@ document.querySelector("#logout-button").addEventListener("click", () => {
   document.body.classList.remove("is-authenticated");
   headerUser.hidden = true;
   adminButton.hidden = true;
+  currentRole.textContent = "";
   loginForm.elements.username.focus();
 });
 
@@ -93,6 +101,21 @@ function setArt(el, game) {
   el.style.setProperty("--card-bg", game.bg);
   el.style.setProperty("--card-glow", game.hue);
   el.style.setProperty("--orb", game.hue);
+  el.style.backgroundImage = "";
+  el.style.backgroundSize = "";
+  el.style.backgroundPosition = "";
+
+  if (!game.image) return;
+  try {
+    const imageUrl = new URL(game.image);
+    if (!["http:", "https:"].includes(imageUrl.protocol)) return;
+    const safeUrl = imageUrl.href.replaceAll('"', "%22");
+    el.style.backgroundImage = `linear-gradient(135deg, rgba(15,15,35,.18), rgba(15,15,35,.58)), url("${safeUrl}")`;
+    el.style.backgroundSize = "cover";
+    el.style.backgroundPosition = "center";
+  } catch {
+    // An invalid optional image URL should not block the rest of the game card.
+  }
 }
 
 function renderGrid() {
@@ -203,10 +226,15 @@ const adminModal = document.querySelector("#admin-modal");
 const adminRows = document.querySelector("#admin-rows");
 const adminError = document.querySelector("#admin-error");
 
-function createAdminRow(game = { title: "Yeni oyun", category: "Aksiyon", url: "https://" }) {
+function createAdminRow(game = { title: "Yeni oyun", category: "Aksiyon", url: "https://", image: "" }) {
   const row = document.createElement("div");
   row.className = "admin-row";
-  const fields = [["title", "Oyun adı", game.title], ["category", "Kategori", game.category], ["url", "https:// bağlantısı", game.url]];
+  const fields = [
+    ["title", "Oyun adı", game.title],
+    ["category", "Kategori", game.category],
+    ["url", "Oyun bağlantısı (https://)", game.url],
+    ["image", "Görsel URL'si (isteğe bağlı)", game.image || ""],
+  ];
   fields.forEach(([name, placeholder, value]) => {
     const input = document.createElement("input"); input.name = name; input.placeholder = placeholder; input.value = value; input.setAttribute("aria-label", placeholder); row.append(input);
   });
@@ -223,8 +251,10 @@ document.querySelector("#save-games").addEventListener("click", () => {
   const rows = [...adminRows.querySelectorAll(".admin-row")];
   const nextGames = rows.map((row, index) => {
     const values = Object.fromEntries([...row.querySelectorAll("input")].map((input) => [input.name, input.value.trim()]));
-    const url = values.url && !/^[a-z][a-z\d+.-]*:\/\//i.test(values.url) ? `https://${values.url}` : values.url;
-    return { ...values, url, hue: defaultGames[index % defaultGames.length].hue, bg: defaultGames[index % defaultGames.length].bg };
+    const normalizeUrl = (value) => value && !/^[a-z][a-z\d+.-]*:\/\//i.test(value) ? `https://${value}` : value;
+    const url = normalizeUrl(values.url);
+    const image = normalizeUrl(values.image);
+    return { ...values, url, image, hue: defaultGames[index % defaultGames.length].hue, bg: defaultGames[index % defaultGames.length].bg };
   });
   if (nextGames.some(({ title, category, url }) => !title || !category || !url)) { adminError.textContent = "Her satırda oyun adı, kategori ve bağlantı alanı dolu olmalı."; return; }
   try {
