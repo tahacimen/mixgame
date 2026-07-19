@@ -14,6 +14,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { scroll-behavior: smooth; }
 body { margin: 0; min-width: 320px; color: var(--text); background: var(--bg); font-family: "Chakra Petch", sans-serif; overflow-x: hidden; }
 button, a { font: inherit; }

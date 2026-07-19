@@ -43,7 +43,6 @@ function canEdit(user) {
 function setAuthenticatedUser(username) {
   const user = demoUsers[username];
   if (!user) return;
-  sessionStorage.setItem("mixgame-user", username);
   document.body.classList.add("is-authenticated");
   headerUser.hidden = false;
   currentUser.textContent = user.displayName;
@@ -80,16 +79,12 @@ document.querySelector("#password-toggle").addEventListener("click", (event) => 
 });
 
 document.querySelector("#logout-button").addEventListener("click", () => {
-  sessionStorage.removeItem("mixgame-user");
   document.body.classList.remove("is-authenticated");
   headerUser.hidden = true;
   adminButton.hidden = true;
   currentRole.textContent = "";
   loginForm.elements.username.focus();
 });
-
-const savedUser = sessionStorage.getItem("mixgame-user");
-if (demoUsers[savedUser]) setAuthenticatedUser(savedUser);
 
 const grid = document.querySelector("#games-grid");
 const cardTemplate = document.querySelector("#game-card-template");
