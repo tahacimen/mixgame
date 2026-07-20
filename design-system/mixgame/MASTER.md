@@ -19,29 +19,30 @@
 
 | Role | Hex | CSS Variable |
 |------|-----|--------------|
-| Primary | `#7C3AED` | `--color-primary` |
+| Primary | `#5B4CF0` | `--color-primary` |
 | On Primary | `#FFFFFF` | `--color-on-primary` |
-| Secondary | `#A78BFA` | `--color-secondary` |
-| Accent/CTA | `#F43F5E` | `--color-accent` |
-| Background | `#0F0F23` | `--color-background` |
-| Foreground | `#E2E8F0` | `--color-foreground` |
-| Muted | `#27273B` | `--color-muted` |
-| Border | `#4C1D95` | `--color-border` |
+| Secondary | `#9B8CFF` | `--color-secondary` |
+| Accent/CTA | `#FAFAFA` | `--color-accent` |
+| Background | `#09090B` | `--color-background` |
+| Foreground | `#FAFAFA` | `--color-foreground` |
+| Muted | `#A1A1AA` | `--color-muted` |
+| Border | `rgba(255,255,255,.12)` | `--color-border` |
 | Destructive | `#EF4444` | `--color-destructive` |
 | Ring | `#7C3AED` | `--color-ring` |
 
-**Color Notes:** Neon purple + rose action
+**Color Notes:** Near-black studio surfaces, restrained violet focus, warm white primary actions
 
 ### Typography
 
-- **Heading Font:** Russo One
-- **Body Font:** Chakra Petch
-- **Mood:** gaming, bold, action, esports, competitive, energetic
-- **Google Fonts:** [Russo One + Chakra Petch](https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Russo+One&display=swap)
+- **Heading Font:** DM Sans
+- **Editorial Accent:** Instrument Serif Italic
+- **Body Font:** DM Sans
+- **Mood:** curated, premium, editorial, focused, modern
+- **Google Fonts:** [DM Sans + Instrument Serif](https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap)
 
 **CSS Import:**
 ```css
-@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Russo+One&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap');
 ```
 
 ### Spacing Variables
@@ -161,13 +162,13 @@
 
 ## Style Guidelines
 
-**Style:** Modern Dark (Cinema Mobile)
+**Style:** Premium Dark Component Library
 
-**Keywords:** dark mode, cinematic, ambient light, glassmorphism, deep black, indigo, glow, blur, atmospheric, reanimated, haptic, premium, layered, frosted glass, linear gradient
+**Keywords:** dark mode, editorial display type, command search, quiet borders, near-black, restrained indigo, premium, curated library, subtle grid
 
 **Best For:** Developer tools, pro productivity apps, fintech/trading dashboards, media/streaming platforms, AI tool interfaces, high-end gaming companion apps
 
-**Key Effects:** Expo.out Bezier(0.16,1,0.3,1) easing; spring modals (damping:20 stiffness:90); haptic-linked press (Impact Light/Medium); animated ambient light blobs (Reanimated translateX/Y slow oscillation); BlurView glassmorphism headers/nav (intensity 20); scale press 0.97 → 1.0; avoid pure #000000 (OLED smear)
+**Key Effects:** Expo.out Bezier(0.16,1,0.3,1) easing; subtle sticky glass header; 1px neutral borders; restrained violet focus rings; scale press 0.97 → 1.0; no continuous decorative motion
 
 ### Page Pattern
 

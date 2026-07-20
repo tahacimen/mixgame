@@ -3,13 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0f0f23" />
+    <meta name="theme-color" content="#09090b" />
     <meta name="description" content="Keşfedilecek oyunlara açılan görsel kısayol koleksiyonu." />
     <title>MixGame — oyunlara hızlı geçiş</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Russo+One&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="style.css?v=20260719-4" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css?v=20260720-1" />
   </head>
   <body>
     <a class="skip-link" href="#games">Oyun listesine geç</a>
@@ -56,6 +56,10 @@
         <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
         <span>MixGame</span>
       </a>
+      <nav class="header-nav" aria-label="Ana gezinme">
+        <a href="#featured">Öne çıkanlar</a>
+        <a href="#games">Kütüphane</a>
+      </nav>
       <div class="header-user" id="header-user" hidden>
         <span>Merhaba, <b id="current-user"></b></span>
         <span class="user-role" id="current-role"></span>
@@ -68,14 +72,15 @@
     <main id="top">
       <section class="hero" aria-labelledby="hero-title">
         <div class="hero-copy">
-          <p class="eyebrow">KISA YOLUN AÇIK</p>
-          <h1 id="hero-title">Bir sonraki oyunun<br /><em>bir kare</em> uzağında.</h1>
-          <p class="intro">Seç, dokun ve doğrudan oyuna geç. Keşfedilecek hızlı, görsel bir oyun koleksiyonu.</p>
+          <p class="hero-kicker"><span aria-hidden="true"></span> Küratörlü oyun kütüphanesi</p>
+          <h1 id="hero-title">Oynamaya değer<br />bir şey <em>keşfet.</em></h1>
+          <p class="intro">Seç, dokun ve doğrudan oyuna geç. Gereksiz menüler yok; sadece senin için seçilmiş oyunlar var.</p>
+          <a class="hero-link" href="#games">Kütüphaneyi keşfet <span aria-hidden="true">↓</span></a>
         </div>
 
-        <div class="featured" aria-label="Öne çıkan oyunlar">
+        <div class="featured" id="featured" aria-label="Öne çıkan oyunlar">
           <div class="section-heading">
-            <p>Öne çıkanlar</p>
+            <p><span class="live-dot" aria-hidden="true"></span> Bu hafta öne çıkanlar</p>
             <div class="carousel-buttons">
               <button class="round-button" id="prev-featured" type="button" aria-label="Önceki öne çıkan oyun">←</button>
               <button class="round-button" id="next-featured" type="button" aria-label="Sonraki öne çıkan oyun">→</button>
@@ -94,8 +99,8 @@
       <section class="games-section" id="games" aria-labelledby="games-title">
         <div class="games-header">
           <div>
-            <p class="eyebrow">KEŞFET</p>
-            <h2 id="games-title">Oyun köşeleri</h2>
+            <p class="eyebrow">KÜTÜPHANE</p>
+            <h2 id="games-title">Oyuna hızlı geç.</h2>
           </div>
           <p class="result-count"><span id="game-count">0</span> oyun</p>
         </div>
@@ -104,7 +109,8 @@
           <label class="search-box" for="game-search">
             <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
             <span class="sr-only">Oyun ara</span>
-            <input id="game-search" type="search" placeholder="Oyun veya kategori ara…" autocomplete="off" />
+            <input id="game-search" type="search" placeholder="Oyun ara veya kategoriye geç…" autocomplete="off" />
+            <kbd aria-hidden="true">K</kbd>
           </label>
           <div class="view-tabs" aria-label="Kütüphane görünümü">
             <button class="view-chip" type="button" data-view="all" aria-pressed="true">Kütüphane</button>
@@ -139,6 +145,6 @@
         </button>
       </article>
     </template>
-    <script src="app.js?v=20260719-4"></script>
+    <script src="app.js?v=20260720-1"></script>
   </body>
 </html>

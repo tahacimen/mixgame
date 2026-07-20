@@ -257,6 +257,24 @@ searchInput.addEventListener("input", () => {
   renderGrid();
 });
 
+document.addEventListener("keydown", (event) => {
+  if (!document.body.classList.contains("is-authenticated")) return;
+  const target = event.target;
+  const isTyping = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target?.isContentEditable;
+  if ((event.key.toLocaleLowerCase("tr") === "k" && (event.ctrlKey || event.metaKey)) || (event.key === "/" && !isTyping)) {
+    event.preventDefault();
+    searchInput.focus();
+    searchInput.select();
+    document.querySelector("#games").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  if (event.key === "Escape" && document.activeElement === searchInput) {
+    searchInput.value = "";
+    searchQuery = "";
+    renderGrid();
+    searchInput.blur();
+  }
+});
+
 viewButtons.forEach((button) => {
   button.addEventListener("click", () => {
     activeView = button.dataset.view;
