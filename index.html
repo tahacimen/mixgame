@@ -6,15 +6,18 @@
     <meta name="theme-color" content="#09090b" />
     <meta name="description" content="Keşfedilecek oyunlara açılan görsel kısayol koleksiyonu." />
     <title>MixGame — oyunlara hızlı geçiş</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="style.css?v=20260720-1" />
+    <link rel="stylesheet" href="style.css?v=20260720-2" />
   </head>
   <body>
     <a class="skip-link" href="#games">Oyun listesine geç</a>
     <div class="ambient ambient-one" aria-hidden="true"></div>
     <div class="ambient ambient-two" aria-hidden="true"></div>
+    <div class="hero-backdrop" id="hero-backdrop" aria-hidden="true"></div>
 
     <section class="login-screen" id="login-screen" aria-labelledby="login-title">
       <div class="login-card">
@@ -43,8 +46,20 @@
 
     <section class="admin-modal" id="admin-modal" aria-labelledby="admin-title" aria-modal="true" role="dialog" hidden>
       <div class="admin-card">
-        <div class="admin-topline"><div><p class="eyebrow">YÖNETİM</p><h2 id="admin-title">Oyun linkleri</h2></div><button class="round-button" id="close-admin" type="button" aria-label="Yönetim panelini kapat">×</button></div>
-        <p class="admin-copy">Oyun bilgilerini düzenle ve bilgisayarından bir görsel seç. Görsel yüklemezsen oyun linkindeki site logosu otomatik kullanılır.</p>
+        <div class="admin-topline"><div><p class="eyebrow">YÖNETİM</p><h2 id="admin-title">Oyun linkleri</h2><span class="backend-mode" id="backend-mode">Yerel demo</span></div><button class="round-button" id="close-admin" type="button" aria-label="Yönetim panelini kapat">×</button></div>
+        <p class="admin-copy">Bağlantıyı yapıştırıp oyun bilgilerini otomatik getir veya alanları kendin düzenle. Kategori seçimini kaydetmeden önce kontrol et.</p>
+        <div class="smart-import">
+          <div class="smart-import-heading">
+            <div><p class="eyebrow">AKILLI EKLEME</p><h3>Linki ver, kartı hazırlayalım.</h3></div>
+            <span class="smart-badge">Beta</span>
+          </div>
+          <div class="smart-import-form">
+            <label class="sr-only" for="smart-game-url">Oyun bağlantısı</label>
+            <input id="smart-game-url" type="url" placeholder="https://oyun-adresi.com" autocomplete="url" />
+            <button class="smart-fetch-button" id="smart-fetch" type="button">Bilgileri getir</button>
+          </div>
+          <p class="smart-status" id="smart-status" aria-live="polite">Ad, kapak ve açıklama bağlantıdan bulunmaya çalışılır.</p>
+        </div>
         <div class="admin-rows" id="admin-rows"></div>
         <div class="admin-actions"><button class="secondary-button" id="add-game" type="button">+ Oyun ekle</button><button class="login-submit" id="save-games" type="button">Değişiklikleri kaydet</button></div>
         <p class="login-error" id="admin-error" role="alert" aria-live="assertive"></p>
@@ -118,6 +133,7 @@
             <button class="view-chip" type="button" data-view="recent" aria-pressed="false">Son açılanlar</button>
           </div>
         </div>
+        <p class="shortcut-hint"><kbd>/</kbd> ara <span>•</span> <kbd>F</kbd> favoriler <span>•</span> <kbd>Alt + 1–9</kbd> hızlı aç <span>•</span> yönetici: <kbd>N</kbd> yeni oyun</p>
         <div class="chip-scroller" role="tablist" aria-label="Oyun kategorileri" id="category-bar"></div>
         <div class="games-grid" id="games-grid" aria-live="polite"></div>
       </section>
@@ -145,6 +161,8 @@
         </button>
       </article>
     </template>
-    <script src="app.js?v=20260720-1"></script>
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+    <script src="config.js"></script>
+    <script src="app.js?v=20260720-2"></script>
   </body>
 </html>

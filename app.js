@@ -21,6 +21,63 @@ let games = (() => {
     return Array.isArray(saved) ? saved : defaultGames;
   } catch { return defaultGames; }
 })();
+const appConfig = window.MIXGAME_CONFIG || {};
+const backendEnabled = Boolean(appConfig.supabaseUrl && appConfig.supabaseAnonKey);
+const backendMode = document.querySelector("#backend-mode");
+backendMode.textContent = backendEnabled ? "Ortak bulut aktif" : "Yerel demo modu";
+backendMode.classList.toggle("is-cloud", backendEnabled);
+let supabaseClient = null;
+let remoteGamesChannel = null;
+const toast = document.querySelector("#toast");
+let toastTimer;
+
+function showToast(message) {
+  toast.textContent = message;
+  toast.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => { toast.hidden = true; }, 3200);
+}
+
+async function getSupabaseClient() {
+  if (!backendEnabled) return null;
+  if (supabaseClient) return supabaseClient;
+  const { createClient } = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm");
+  supabaseClient = createClient(appConfig.supabaseUrl, appConfig.supabaseAnonKey);
+  return supabaseClient;
+}
+
+function mapRemoteGame(game) {
+  return {
+    id: game.id,
+    title: game.title,
+    category: game.category,
+    url: game.url,
+    image: game.image_url || "",
+    description: game.description || "",
+    hue: game.hue || "#9b8cff",
+    bg: game.background || "linear-gradient(135deg,#201b54,#09090b)",
+  };
+}
+
+async function loadRemoteGames() {
+  const client = await getSupabaseClient();
+  const { data, error } = await client.from("games").select("*").order("sort_order", { ascending: true });
+  if (error) throw error;
+  games = (data || []).map(mapRemoteGame);
+  renderCategories();
+  renderGrid();
+  renderFeatured();
+  showFeatured(0);
+}
+
+async function enableRemoteUpdates() {
+  const client = await getSupabaseClient();
+  if (remoteGamesChannel) await client.removeChannel(remoteGamesChannel);
+  remoteGamesChannel = client
+    .channel("mixgame-games")
+    .on("postgres_changes", { event: "*", schema: "public", table: "games" }, () => loadRemoteGames().catch(() => {}))
+    .subscribe();
+}
 
 // Temporary front-end demo only. Move identity checks to a secure service before production.
 const demoUsers = {
@@ -36,15 +93,17 @@ const currentUser = document.querySelector("#current-user");
 const currentRole = document.querySelector("#current-role");
 const adminButton = document.querySelector("#admin-button");
 let activeUsername = "";
+let activeUser = null;
 
 function canEdit(user) {
   return user?.role === "admin" || user?.role === "editor";
 }
 
-function setAuthenticatedUser(username) {
-  const user = demoUsers[username];
+function setAuthenticatedUser(username, userOverride = null) {
+  const user = userOverride || demoUsers[username];
   if (!user) return;
   activeUsername = username;
+  activeUser = user;
   document.body.classList.add("is-authenticated");
   headerUser.hidden = false;
   currentUser.textContent = user.displayName;
@@ -53,24 +112,43 @@ function setAuthenticatedUser(username) {
   renderGrid();
 }
 
-loginForm.addEventListener("submit", (event) => {
+loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const username = loginForm.elements.username.value.trim().toLowerCase();
   const password = loginForm.elements.password.value;
   loginError.textContent = "";
   loginSubmit.disabled = true;
   loginSubmit.textContent = "Kontrol ediliyor…";
-  window.setTimeout(() => {
-    if (demoUsers[username]?.password === password) {
+  try {
+    if (backendEnabled) {
+      const client = await getSupabaseClient();
+      const email = username.includes("@") ? username : `${username}@mixgame.local`;
+      const { data: authData, error: authError } = await client.auth.signInWithPassword({ email, password });
+      if (authError) throw authError;
+      const { data: profile, error: profileError } = await client.from("profiles").select("username, display_name, role").eq("id", authData.user.id).single();
+      if (profileError) throw profileError;
+      const roleLabels = { admin: "Yönetici", editor: "İçerik Editörü", player: "Oyuncu" };
+      await loadRemoteGames();
+      await enableRemoteUpdates();
+      setAuthenticatedUser(profile.username, {
+        displayName: profile.display_name,
+        role: profile.role,
+        roleLabel: roleLabels[profile.role] || "Oyuncu",
+        id: authData.user.id,
+      });
+    } else if (demoUsers[username]?.password === password) {
       setAuthenticatedUser(username);
-      loginForm.reset();
     } else {
-      loginError.textContent = "Kullanıcı adı veya şifre doğru değil. Test hesaplarını kontrol et.";
-      loginForm.elements.username.focus();
+      throw new Error("Kullanıcı adı veya şifre doğru değil. Test hesaplarını kontrol et.");
     }
+    loginForm.reset();
+  } catch (error) {
+    loginError.textContent = error.message || "Giriş yapılamadı. Bilgilerini kontrol edip tekrar dene.";
+    loginForm.elements.username.focus();
+  } finally {
     loginSubmit.disabled = false;
     loginSubmit.innerHTML = 'Giriş yap <span aria-hidden="true">→</span>';
-  }, 260);
+  }
 });
 
 document.querySelector("#password-toggle").addEventListener("click", (event) => {
@@ -81,8 +159,16 @@ document.querySelector("#password-toggle").addEventListener("click", (event) => 
   event.currentTarget.setAttribute("aria-pressed", String(!shown));
 });
 
-document.querySelector("#logout-button").addEventListener("click", () => {
+document.querySelector("#logout-button").addEventListener("click", async () => {
+  if (backendEnabled && supabaseClient) {
+    await supabaseClient.auth.signOut();
+    if (remoteGamesChannel) {
+      await supabaseClient.removeChannel(remoteGamesChannel);
+      remoteGamesChannel = null;
+    }
+  }
   activeUsername = "";
+  activeUser = null;
   document.body.classList.remove("is-authenticated");
   headerUser.hidden = true;
   adminButton.hidden = true;
@@ -273,6 +359,30 @@ document.addEventListener("keydown", (event) => {
     renderGrid();
     searchInput.blur();
   }
+  if (event.key.toLocaleLowerCase("tr") === "f" && !isTyping && adminModal.hidden) {
+    event.preventDefault();
+    activeView = "favorites";
+    viewButtons.forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.view === "favorites")));
+    renderGrid();
+    document.querySelector("#games").scrollIntoView({ behavior: "smooth", block: "start" });
+    showToast("Favorilerin açıldı.");
+  }
+  if (event.key.toLocaleLowerCase("tr") === "n" && !isTyping && canEdit(activeUser)) {
+    event.preventDefault();
+    openAdminPanel();
+    const row = createAdminRow();
+    adminRows.prepend(row);
+    row.querySelector("input").focus();
+  }
+  if (event.altKey && /^[1-9]$/.test(event.key) && !isTyping) {
+    const game = games[Number(event.key) - 1];
+    if (game) {
+      event.preventDefault();
+      markRecentlyOpened(game);
+      window.open(game.url, "_blank", "noopener,noreferrer");
+      showToast(`${game.title} açılıyor.`);
+    }
+  }
 });
 
 viewButtons.forEach((button) => {
@@ -347,6 +457,26 @@ function showFeatured(index) {
   track.style.transform = `translateX(${-featuredIndex * distance}px)`;
   [...dots.children].forEach((dot, i) => dot.classList.toggle("active", i === featuredIndex));
   featuredCount.textContent = String(featuredIndex + 1).padStart(2, "0");
+  updateHeroBackdrop(featuredGames[featuredIndex]);
+}
+
+const heroBackdrop = document.querySelector("#hero-backdrop");
+let backdropTimer;
+function updateHeroBackdrop(game) {
+  if (!game) {
+    heroBackdrop.style.opacity = "0";
+    return;
+  }
+  const image = getGameImage(game);
+  heroBackdrop.style.opacity = "0";
+  clearTimeout(backdropTimer);
+  backdropTimer = window.setTimeout(() => {
+    const layer = image && !image.automatic
+      ? `linear-gradient(180deg, rgba(9,9,11,.42), #09090b 82%), url("${image.source.replaceAll('"', "%22")}")`
+      : `${game.bg || "linear-gradient(135deg,#201b54,#09090b)"}`;
+    heroBackdrop.style.backgroundImage = layer;
+    heroBackdrop.style.opacity = "";
+  }, 150);
 }
 
 function restartAutoplay() {
@@ -414,10 +544,12 @@ function updateImagePicker(row, statusText) {
   }
 }
 
-function createAdminRow(game = { title: "Yeni oyun", category: "Aksiyon", url: "https://", image: "" }) {
+function createAdminRow(game = { title: "Yeni oyun", category: "", url: "https://", image: "", description: "" }) {
   const row = document.createElement("div");
   row.className = "admin-row";
+  row.dataset.id = game.id || "";
   row.dataset.image = game.image || "";
+  row.dataset.description = game.description || "";
   const fields = [
     ["title", "Oyun adı", game.title],
     ["category", "Kategori", game.category],
@@ -455,6 +587,18 @@ function createAdminRow(game = { title: "Yeni oyun", category: "Aksiyon", url: "
   });
   row.append(picker);
   updateImagePicker(row);
+  const reorder = document.createElement("div");
+  reorder.className = "reorder-buttons";
+  reorder.innerHTML = '<button type="button" aria-label="Oyunu yukarı taşı">↑</button><button type="button" aria-label="Oyunu aşağı taşı">↓</button>';
+  reorder.children[0].addEventListener("click", () => {
+    const previous = row.previousElementSibling;
+    if (previous) adminRows.insertBefore(row, previous);
+  });
+  reorder.children[1].addEventListener("click", () => {
+    const next = row.nextElementSibling;
+    if (next) adminRows.insertBefore(next, row);
+  });
+  row.append(reorder);
   const remove = document.createElement("button"); remove.className = "remove-game"; remove.type = "button"; remove.textContent = "×"; remove.setAttribute("aria-label", `${game.title} oyununu kaldır`); remove.addEventListener("click", () => row.remove()); row.append(remove);
   return row;
 }
@@ -464,7 +608,50 @@ function closeAdminPanel() { adminModal.hidden = true; adminButton.focus(); }
 adminButton.addEventListener("click", openAdminPanel);
 document.querySelector("#close-admin").addEventListener("click", closeAdminPanel);
 document.querySelector("#add-game").addEventListener("click", () => { const row = createAdminRow(); adminRows.append(row); row.querySelector("input").focus(); });
-document.querySelector("#save-games").addEventListener("click", () => {
+
+async function uploadRemoteCover(dataUrl) {
+  if (!dataUrl.startsWith("data:image/")) return dataUrl;
+  const client = await getSupabaseClient();
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+  const path = `${activeUser.id}/${crypto.randomUUID()}.webp`;
+  const { error } = await client.storage.from("game-covers").upload(path, blob, { contentType: "image/webp", upsert: false });
+  if (error) throw error;
+  return client.storage.from("game-covers").getPublicUrl(path).data.publicUrl;
+}
+
+async function persistRemoteGames(nextGames) {
+  const client = await getSupabaseClient();
+  const prepared = [];
+  for (let index = 0; index < nextGames.length; index += 1) {
+    const game = nextGames[index];
+    prepared.push({
+      ...(game.id ? { id: game.id } : {}),
+      title: game.title,
+      category: game.category,
+      url: game.url,
+      image_url: await uploadRemoteCover(game.image || ""),
+      description: game.description || "",
+      hue: game.hue,
+      background: game.bg,
+      sort_order: index,
+      created_by: activeUser.id,
+    });
+  }
+  const { data: existing, error: existingError } = await client.from("games").select("id,url");
+  if (existingError) throw existingError;
+  const { error: saveError } = await client.from("games").upsert(prepared, { onConflict: "url" });
+  if (saveError) throw saveError;
+  const keepUrls = new Set(prepared.map(({ url }) => url));
+  const removedIds = (existing || []).filter(({ url }) => !keepUrls.has(url)).map(({ id }) => id);
+  if (removedIds.length) {
+    const { error: deleteError } = await client.from("games").delete().in("id", removedIds);
+    if (deleteError) throw deleteError;
+  }
+  await loadRemoteGames();
+}
+
+document.querySelector("#save-games").addEventListener("click", async () => {
   const rows = [...adminRows.querySelectorAll(".admin-row")];
   if (rows.some((row) => row.dataset.processing)) {
     adminError.textContent = "Görsel hazırlanıyor; birkaç saniye sonra tekrar kaydet.";
@@ -475,26 +662,142 @@ document.querySelector("#save-games").addEventListener("click", () => {
     const normalizeUrl = (value) => value && !/^[a-z][a-z\d+.-]*:\/\//i.test(value) ? `https://${value}` : value;
     const url = normalizeUrl(values.url);
     const image = row.dataset.image || "";
-    return { ...values, url, image, hue: defaultGames[index % defaultGames.length].hue, bg: defaultGames[index % defaultGames.length].bg };
+    return { ...values, id: row.dataset.id || "", url, image, description: row.dataset.description || "", hue: defaultGames[index % defaultGames.length].hue, bg: defaultGames[index % defaultGames.length].bg };
   });
   if (nextGames.some(({ title, category, url }) => !title || !category || !url)) { adminError.textContent = "Her satırda oyun adı, kategori ve bağlantı alanı dolu olmalı."; return; }
+  const saveButton = document.querySelector("#save-games");
+  saveButton.disabled = true;
+  saveButton.textContent = "Kaydediliyor…";
   try {
-    games = nextGames;
-    localStorage.setItem("mixgame-games", JSON.stringify(games));
-  } catch {
-    adminError.textContent = "Tarayıcı bu cihazda yerel kayıt izni vermiyor. Gizli moddan çıkıp tekrar dene.";
+    if (backendEnabled) {
+      await persistRemoteGames(nextGames);
+    } else {
+      games = nextGames;
+      localStorage.setItem("mixgame-games", JSON.stringify(games));
+    }
+  } catch (error) {
+    adminError.textContent = error.message || "Değişiklikler kaydedilemedi. Bağlantıyı kontrol edip tekrar dene.";
+    saveButton.disabled = false;
+    saveButton.textContent = "Değişiklikleri kaydet";
     return;
   }
   resetDiscovery(); featuredIndex = 0; renderFeatured(); showFeatured(0);
   adminError.style.color = "#9ee6b2";
-  adminError.textContent = "Kaydedildi. Oyun listesi güncellendi.";
+  adminError.textContent = backendEnabled ? "Kaydedildi. Oyun listesi bütün kullanıcılarda güncellendi." : "Bu cihazda kaydedildi. Supabase bağlanınca bütün kullanıcılarda güncellenecek.";
+  saveButton.disabled = false;
+  saveButton.textContent = "Değişiklikleri kaydet";
   window.setTimeout(() => { adminError.style.color = ""; closeAdminPanel(); }, 700);
 });
 adminModal.addEventListener("click", (event) => { if (event.target === adminModal) closeAdminPanel(); });
 document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !adminModal.hidden) closeAdminPanel(); });
+
+const smartUrlInput = document.querySelector("#smart-game-url");
+const smartFetchButton = document.querySelector("#smart-fetch");
+const smartStatus = document.querySelector("#smart-status");
+
+function normalizeGameUrl(value) {
+  const normalized = value && !/^[a-z][a-z\d+.-]*:\/\//i.test(value) ? `https://${value}` : value;
+  const url = new URL(normalized);
+  if (!["http:", "https:"].includes(url.protocol)) throw new Error("Yalnızca http veya https bağlantısı kullan.");
+  return url.href;
+}
+
+async function fetchGameMetadata(url) {
+  const endpoint = appConfig.metadataEndpoint || (appConfig.supabaseUrl ? `${appConfig.supabaseUrl.replace(/\/$/, "")}/functions/v1/metadata` : "");
+  if (endpoint) {
+    const headers = { "Content-Type": "application/json" };
+    if (appConfig.supabaseAnonKey) {
+      headers.apikey = appConfig.supabaseAnonKey;
+      headers.Authorization = `Bearer ${appConfig.supabaseAnonKey}`;
+    }
+    const response = await fetch(endpoint, { method: "POST", headers, body: JSON.stringify({ url }) });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Bağlantı bilgileri getirilemedi.");
+    return data;
+  }
+  const response = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=true`);
+  const payload = await response.json();
+  if (!response.ok || payload.status !== "success") throw new Error(payload.message || "Bağlantı bilgileri getirilemedi.");
+  const previewImage = payload.data.image;
+  const hasCoverSizedImage = previewImage?.url && Number(previewImage.width || 0) >= 300;
+  return {
+    title: payload.data.title,
+    description: payload.data.description,
+    image: hasCoverSizedImage ? previewImage.url : payload.data.screenshot?.url || previewImage?.url || payload.data.logo?.url || "",
+    favicon: payload.data.logo?.url || "",
+    url: payload.data.url || url,
+  };
+}
+
+smartFetchButton.addEventListener("click", async () => {
+  smartStatus.className = "smart-status";
+  smartFetchButton.disabled = true;
+  smartFetchButton.textContent = "İnceleniyor…";
+  try {
+    const url = normalizeGameUrl(smartUrlInput.value.trim());
+    smartStatus.textContent = "Sayfa adı ve kapak görseli aranıyor…";
+    const metadata = await fetchGameMetadata(url);
+    const newGame = {
+      title: metadata.title?.trim() || new URL(url).hostname,
+      category: "",
+      url: metadata.url || url,
+      image: metadata.image || metadata.favicon || "",
+      description: metadata.description || "",
+    };
+    const row = createAdminRow(newGame);
+    adminRows.prepend(row);
+    row.querySelector('[name="category"]').focus();
+    row.scrollIntoView({ behavior: "smooth", block: "center" });
+    smartUrlInput.value = "";
+    smartStatus.classList.add("is-success");
+    smartStatus.textContent = "Kart hazır. Şimdi kategoriyi yazıp değişiklikleri kaydet.";
+  } catch (error) {
+    smartStatus.classList.add("is-error");
+    smartStatus.textContent = error.message || "Bilgiler getirilemedi. Alanları elle ekleyebilirsin.";
+  } finally {
+    smartFetchButton.disabled = false;
+    smartFetchButton.textContent = "Bilgileri getir";
+  }
+});
+
+smartUrlInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    smartFetchButton.click();
+  }
+});
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
+}
 
 renderCategories();
 renderGrid();
 renderFeatured();
 showFeatured(0);
 restartAutoplay();
+
+async function restoreBackendSession() {
+  if (!backendEnabled) return;
+  try {
+    const client = await getSupabaseClient();
+    const { data: sessionData } = await client.auth.getSession();
+    const userId = sessionData.session?.user?.id;
+    if (!userId) return;
+    const { data: profile, error } = await client.from("profiles").select("username, display_name, role").eq("id", userId).single();
+    if (error) throw error;
+    const roleLabels = { admin: "Yönetici", editor: "İçerik Editörü", player: "Oyuncu" };
+    await loadRemoteGames();
+    await enableRemoteUpdates();
+    setAuthenticatedUser(profile.username, {
+      displayName: profile.display_name,
+      role: profile.role,
+      roleLabel: roleLabels[profile.role] || "Oyuncu",
+      id: userId,
+    });
+  } catch {
+    showToast("Ortak kütüphaneye bağlanılamadı. Tekrar giriş yapmayı dene.");
+  }
+}
+
+restoreBackendSession();

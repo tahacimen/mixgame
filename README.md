@@ -1,6 +1,6 @@
 # MixGame — görsel oyun kısayolları
 
-Mobil öncelikli, tek sayfalık oyun bağlantı vitrini. Bu proje oyun çalıştırmaz; kare kartlardan harici oyun sayfalarına hızlı geçiş sağlar.
+Mobil öncelikli, tek sayfalık oyun bağlantı vitrini. Bu proje oyun çalıştırmaz; kare kartlardan harici oyun sayfalarına hızlı geçiş sağlar. Supabase bağlandığında güvenli roller ve cihazlar arası ortak oyun kütüphanesi kullanır; yapılandırma yokken yerel demo moduna döner.
 
 ## Wireframe
 
@@ -26,25 +26,40 @@ MOBİL (360–480)                 TABLET (600–1024)
 └────────────────────┘
 ```
 
-## Görsel sistem
+## Yeni özellikler
 
-- **Stil:** Modern Dark / cinematic gaming; derin lacivert yüzeyler, mor ve roze aksanlar.
-- **Renkler:** arka plan `#0F0F23`, yüzey `#17172D`, ana vurgu `#7C3AED`, ikincil `#A78BFA`, aksiyon `#F43F5E`, metin `#F7F6FF`.
-- **Tipografi:** başlıklar `Russo One`, metin ve oyun adları `Chakra Petch`.
-- **Kart:** 1:1 kare, 12–18px yarıçap, ince kontrast border; hover'da hafif yukarı kalkma/ışıma, dokunmada `scale(.97)`.
-- **Carousel:** kaydırılabilir kart şeridi, önce/sonra kontrolleri, dot göstergesi ve 4.5 saniyelik otomatik ilerleme.
+- Linkten otomatik oyun adı, açıklama ve kapak görseli çıkarma
+- Öne çıkan oyuna göre değişen karartılmış hero arka planı
+- Yönetici için erişilebilir yukarı/aşağı sıralama kontrolleri
+- Arama, favoriler, son açılanlar ve kişisel hızlı erişim
+- PWA manifesti, çevrimdışı uygulama kabuğu ve ana ekrana kurulum
+- Supabase Auth, Postgres, Storage, Realtime ve RLS için hazır altyapı
 
 ## Çalıştırma
 
-`index.html` dosyasını tarayıcıda aç. Gerçek oyun bağlantıları için `app.js` içindeki örnek `example.com` URL'lerini değiştir.
+Yerel sunucuda çalıştır:
 
-## Geçici giriş
+```sh
+python -m http.server 4173
+```
 
-Ana ekrana erişim için üç geçici demo hesabı eklidir: `oyuncu1` yönetici, `oyuncu2` oyuncu ve `oyuncu3` içerik editörüdür. Test şifresi `mixgame2026`dır. Bu doğrulama yalnızca tarayıcıda yapılır; gerçek kullanıcı verisi veya güvenli şifre saklama sağlamaz. Canlı üyelik için Supabase Auth veya Firebase Authentication gibi sunucu taraflı bir çözüm kullanılmalıdır.
+Ardından `http://127.0.0.1:4173` adresini aç.
 
-`oyuncu1` ve `oyuncu3`, **Yönet** düğmesi ile oyun ekleme, düzenleme, görsel yükleme ve silme işlemlerini yapabilir. Düzenlemeler tarayıcının yerel depolamasında kalır; başka cihazlara veya ziyaretçilere aktarılmaz.
+Supabase kurulumu için [`supabase/SETUP.md`](supabase/SETUP.md) dosyasını izle.
 
-Oyuncular oyun adı/kategorisiyle anlık arama yapabilir, oyunları kullanıcıya özel favorilere ekleyebilir ve son açtıkları oyunları görebilir.
+## Giriş modları
+
+`config.js` boşken üç geçici demo hesabı kullanılabilir: `oyuncu1` yönetici, `oyuncu2` oyuncu ve `oyuncu3` içerik editörüdür. Test şifresi `mixgame2026`dır. Bu mod yalnızca yerel geliştirme kolaylığı içindir.
+
+Supabase değerleri girildiğinde girişler Supabase Auth üzerinden doğrulanır; roller `profiles` tablosundan, oyunlar RLS korumalı `games` tablosundan gelir. Yönetici değişiklikleri Realtime ile açık oturumlara aktarılır.
+
+## Klavye kısa yolları
+
+- `/` veya `Ctrl/Cmd + K`: aramaya git
+- `F`: favorileri aç
+- `Alt + 1–9`: ilk dokuz oyundan birini aç
+- `N`: yönetici/editör için yeni oyun satırı
+- `Escape`: aramayı temizle veya yönetim panelini kapat
 
 ## Erişilebilirlik ve performans
 
